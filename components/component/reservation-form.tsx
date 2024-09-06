@@ -1,96 +1,252 @@
-"use client"
+"use client";
 
-import { useForm } from "react-hook-form"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { ChevronDownIcon } from "@heroicons/react/24/outline"
-import { useState } from "react"
+import { useForm } from "react-hook-form";
+import { useState } from "react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { format } from "date-fns";
+import axios from "axios";
 
 export function ReservationForm() {
-  const { register, handleSubmit, setValue, watch } = useForm();
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm();
   const [showReservation, setShowReservation] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
-  const onSubmit = data => {
-    console.log(data);
-    setShowReservation(true);
+  const onSubmit = async (data) => {
+    try {
+      const response = await axios.post("/api/reservation", {
+        place: data.selectedPlace,
+        dpto: data.apartment,
+        ownerName: data.name,
+        dayTime: data.selectedTime,
+        reservationDate: data.selectedDate,
+      });
+
+      console.log(response.data);
+      setShowReservation(true);
+    } catch (error) {
+      console.error("Error al enviar la reserva:", error);
+    }
   };
 
-  const selectedPlace = watch('selectedPlace');
-  const selectedTime = watch('selectedTime');
-  const selectedDate = watch('selectedDate');
+  const selectedPlace = watch("selectedPlace");
+  const selectedTime = watch("selectedTime");
+  const selectedDateFormatted = selectedDate
+    ? format(selectedDate, "dd/MM/yyyy")
+    : "Selecciona la fecha";
 
   return (
     <div className="relative">
       {!showReservation && (
-        <Card className="max-w-2xl mx-auto p-6 sm:p-8 md:p-10">
+        <Card className="max-w-2xl mx-auto p-6 sm:p-8 md:p-10 bg-white rounded-lg shadow-lg">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold">Formulario De Reserva</CardTitle>
-            <CardDescription>Para realizar la reserva del SUM, por favor completa el formulario.</CardDescription>
+            <CardTitle className="text-3xl font-bold">
+              Formulario De Reserva
+            </CardTitle>
+            <CardDescription className="text-base">
+              Para realizar la reserva del SUM, por favor completa el
+              formulario.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="grid gap-6" onSubmit={handleSubmit(onSubmit)}>
               <div className="grid gap-2">
-                <Label htmlFor="place" className="text-sm font-medium">Selecciona el lugar</Label>
+                <Label htmlFor="place" className="text-base font-medium">
+                  Selecciona el lugar
+                </Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="justify-between w-full">
-                      <span>{selectedPlace || 'Selecciona un lugar'}</span>
+                    <Button
+                      variant="outline"
+                      className="bg-white justify-between w-full"
+                    >
+                      <span className="text-base">
+                        {selectedPlace || "Selecciona un lugar"}
+                      </span>
                       <ChevronDownIcon className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-full">
-                    <DropdownMenuItem onSelect={() => setValue('selectedPlace', 'Pinar II')}>Pinar II</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setValue('selectedPlace', 'Solar De Tafi')}>Solar De Tafi</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setValue('selectedPlace', 'Salta 565')}>Salta 565</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setValue('selectedPlace', 'Laprida 735')}>Laprida 735</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setValue('selectedPlace', 'Junin 861')}>Junin 861</DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-base"
+                      onSelect={() => setValue("selectedPlace", "Pinar II")}
+                    >
+                      Pinar II
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-base"
+                      onSelect={() =>
+                        setValue("selectedPlace", "Solar De Tafi")
+                      }
+                    >
+                      Solar De Tafi
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-base"
+                      onSelect={() => setValue("selectedPlace", "Salta 565")}
+                    >
+                      Salta 565
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-base"
+                      onSelect={() => setValue("selectedPlace", "Laprida 735")}
+                    >
+                      Laprida 735
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-base"
+                      onSelect={() => setValue("selectedPlace", "Junin 861")}
+                    >
+                      Junin 861
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                {errors.selectedPlace && (
+                  <span className="text-red-500 text-sm">
+                    {errors.selectedPlace.message}
+                  </span>
+                )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="apartment" className="text-sm font-medium">Lote/Depto</Label>
-                <Input id="apartment" placeholder="Ingrese lote o depto" {...register('apartment')} />
+                <Label htmlFor="apartment" className="text-base font-medium">
+                  Lote/Depto
+                </Label>
+                <Input
+                  className="bg-white border border-gray-300 rounded-md p-2 text-base"
+                  id="apartment"
+                  placeholder="Ingrese lote o depto"
+                  {...register("apartment", {
+                    required: "Este campo es obligatorio",
+                  })}
+                />
+                {errors.apartment && (
+                  <span className="text-red-500 text-sm">
+                    {errors.apartment.message}
+                  </span>
+                )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="name" className="text-sm font-medium">Nombre del solicitante</Label>
-                <Input id="name" placeholder="Ingrese su nombre" {...register('name')} />
+                <Label htmlFor="name" className="text-base font-medium">
+                  Nombre del solicitante
+                </Label>
+                <Input
+                  className="bg-white border border-gray-300 rounded-md p-2 text-base"
+                  id="name"
+                  placeholder="Ingrese su nombre"
+                  {...register("name", {
+                    required: "Este campo es obligatorio",
+                  })}
+                />
+                {errors.name && (
+                  <span className="text-red-500 text-sm">
+                    {errors.name.message}
+                  </span>
+                )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="time" className="text-sm font-medium">Horario de realización</Label>
+                <Label htmlFor="time" className="text-base font-medium">
+                  Horario de realización
+                </Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="justify-between w-full">
-                      <span>{selectedTime || 'Selecciona el horario'}</span>
+                    <Button
+                      variant="outline"
+                      className="bg-white justify-between w-full"
+                    >
+                      <span className="text-base">
+                        {selectedTime || "Selecciona el horario"}
+                      </span>
                       <ChevronDownIcon className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-full">
-                    <DropdownMenuItem onSelect={() => setValue('selectedTime', 'Mañana')}>Mañana</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setValue('selectedTime', 'Tarde')}>Tarde</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setValue('selectedTime', 'Noche')}>Noche</DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-base"
+                      onSelect={() => setValue("selectedTime", "Mañana")}
+                    >
+                      Mañana
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-base"
+                      onSelect={() => setValue("selectedTime", "Tarde")}
+                    >
+                      Tarde
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-base"
+                      onSelect={() => setValue("selectedTime", "Noche")}
+                    >
+                      Noche
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                {errors.selectedTime && (
+                  <span className="text-red-500 text-sm">
+                    {errors.selectedTime.message}
+                  </span>
+                )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="date" className="text-sm font-medium">Fecha a reservar</Label>
+                <Label htmlFor="date" className="text-base font-medium">
+                  Fecha a reservar
+                </Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="justify-between w-full">
-                      <span>{selectedDate || 'Selecciona la fecha'}</span>
+                    <Button
+                      variant="outline"
+                      className="bg-white justify-between w-full"
+                    >
+                      <span className="text-base">{selectedDateFormatted}</span>
                       <ChevronDownIcon className="w-4 h-4" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="p-0 max-w-[276px]">
-                    <Calendar selectedDate={selectedDate} onDateChange={date => setValue('selectedDate', date)} />
+                    <Calendar
+                      selected={selectedDate}
+                      onDayClick={(date) => {
+                        setSelectedDate(date);
+                        setValue("selectedDate", format(date, "yyyy-MM-dd"));
+                      }}
+                    />
                   </PopoverContent>
                 </Popover>
+                {errors.selectedDate && (
+                  <span className="text-red-500 text-sm">
+                    {errors.selectedDate.message}
+                  </span>
+                )}
               </div>
-              <Button type="submit" className="w-full">Reservar</Button>
+              <Button type="submit" className="w-full text-base">
+                Reservar
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -99,71 +255,95 @@ export function ReservationForm() {
       {showReservation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="max-w-md mx-auto p-6 sm:p-8">
-            <div className="bg-[#00b894] py-4 px-6 rounded-t-md">
-              <div className="flex items-center gap-2">
+            <div className="bg-[#00b894] w-full h-20 py-4 px-10 rounded-t-md">
+              <div className="flex items-center justify-evenly">
                 <CircleCheckIcon className="text-white text-2xl" />
-                <p className="text-white font-medium">Pre-Reserva Realizada</p>
+                <p className="text-xl text-white font-bold">
+                  Pre-Reserva Realizada
+                </p>
               </div>
             </div>
             <CardHeader>
-              <CardTitle>Recibo De Reserva</CardTitle>
-              <CardDescription>Por favor enviar una captura de esta pantalla al administrador del lugar para confirmar la reserva, caso contrario la misma perderá validez pasadas las 24hs de realizada.</CardDescription>
+              <CardTitle className="font-bold">Recibo De Pre-Reserva</CardTitle>
+              <CardDescription className="text-base font-medium">
+                Por favor enviar una captura de esta pantalla al administrador
+                del lugar para confirmar la reserva, caso contrario la misma
+                perderá validez pasadas las 24hs de realizada.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="place">Lugar</Label>
-                  <div className="font-medium">{selectedPlace}</div>
+                <div className="space-y-6">
+                  <Label htmlFor="place" className="text-xl">
+                    Lugar
+                  </Label>
+                  <div className="font-medium text-lg">{selectedPlace}</div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="apartment">Lote/Depto</Label>
-                  <div className="font-medium">{watch('apartment')}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nombre</Label>
-                  <div className="font-medium">{watch('name')}</div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="time">Hora</Label>
-                  <div className="font-medium">{selectedTime}</div>
+                <div className="space-y-6">
+                  <Label htmlFor="apartment" className="text-xl">
+                    Lote/Depto
+                  </Label>
+                  <div className="font-medium text-lg">
+                    {watch("apartment")}
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Fecha</Label>
-                  <div className="font-medium">{selectedDate}</div>
+                <div className="space-y-6">
+                  <Label htmlFor="name" className="text-xl">
+                    Nombre
+                  </Label>
+                  <div className="font-medium text-lg">{watch("name")}</div>
+                </div>
+                <div className="space-y-6">
+                  <Label htmlFor="time" className="text-xl">
+                    Hora
+                  </Label>
+                  <div className="font-medium text-lg">{selectedTime}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-6">
+                  <Label htmlFor="date" className="text-xl">
+                    Fecha
+                  </Label>
+                  <div className="font-medium text-lg">
+                    {selectedDate
+                      ? format(selectedDate, "dd/MM/yyyy")
+                      : "No seleccionada"}
+                  </div>
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={() => setShowReservation(false)}>
-                Confirmar
+              <Button
+                className="w-full"
+                type="button"
+                onClick={() => setShowReservation(false)}
+              >
+                Cerrar
               </Button>
             </CardFooter>
           </Card>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function CircleCheckIcon(props) {
   return (
     <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+      style={{ width: "40px", height: "40px" }}
     >
-      <path d="M20 6L9 17l-5-5" />
+      <path
+        d="M9 16.2L4.8 12 6.6 10.2 9 12.6 17.4 4.2 19.2 6l-10.2 10.2z"
+        fill="currentColor"
+      />
     </svg>
-  )
+  );
 }
