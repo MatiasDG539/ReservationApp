@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardHeader,
@@ -39,6 +39,44 @@ export function ReservationForm() {
   } = useForm();
   const [showReservation, setShowReservation] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [places, setPlaces] = useState<string[]>([]);
+  const [reservedDates, setReservedDates] = useState<Date[]>([]);
+
+  const selectedPlace = watch("selectedPlace");
+
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      try {
+        const response = await axios.get("/api/places");
+        setPlaces(response.data.map((place: { name: string }) => place.name));
+      } catch (error) {
+        console.error("Error al obtener lugares:", error);
+      }
+    };
+
+    fetchPlaces();
+  }, []);
+
+  useEffect(() => {
+    if (selectedPlace) {
+      const fetchReservedDates = async () => {
+        try {
+          const response = await axios.post("/api/reserved-dates", {
+            place: selectedPlace,
+          });
+          const dates = response.data.map(
+            (item: { reservationDate: string }) =>
+              new Date(item.reservationDate)
+          );
+          setReservedDates(dates);
+        } catch (error) {
+          console.error("Error al obtener las fechas reservadas:", error);
+        }
+      };
+
+      fetchReservedDates();
+    }
+  }, [selectedPlace]);
 
   const onSubmit = async (data) => {
     try {
@@ -57,7 +95,6 @@ export function ReservationForm() {
     }
   };
 
-  const selectedPlace = watch("selectedPlace");
   const selectedTime = watch("selectedTime");
   const selectedDateFormatted = selectedDate
     ? format(selectedDate, "dd/MM/yyyy")
@@ -95,38 +132,15 @@ export function ReservationForm() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-full">
-                    <DropdownMenuItem
-                      className="text-base"
-                      onSelect={() => setValue("selectedPlace", "Pinar II")}
-                    >
-                      Pinar II
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-base"
-                      onSelect={() =>
-                        setValue("selectedPlace", "Solar De Tafi")
-                      }
-                    >
-                      Solar De Tafi
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-base"
-                      onSelect={() => setValue("selectedPlace", "Salta 565")}
-                    >
-                      Salta 565
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-base"
-                      onSelect={() => setValue("selectedPlace", "Laprida 735")}
-                    >
-                      Laprida 735
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-base"
-                      onSelect={() => setValue("selectedPlace", "Junin 861")}
-                    >
-                      Junin 861
-                    </DropdownMenuItem>
+                    {places.map((place) => (
+                      <DropdownMenuItem
+                        key={place}
+                        className="text-base"
+                        onSelect={() => setValue("selectedPlace", place)}
+                      >
+                        {place}
+                      </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
                 {errors.selectedPlace && (
@@ -234,6 +248,12 @@ export function ReservationForm() {
                       onDayClick={(date) => {
                         setSelectedDate(date);
                         setValue("selectedDate", format(date, "yyyy-MM-dd"));
+                      }}
+                      modifiers={{
+                        reserved: reservedDates,
+                      }}
+                      modifiersClassNames={{
+                        reserved: "bg-red-500 text-white",
                       }}
                     />
                   </PopoverContent>

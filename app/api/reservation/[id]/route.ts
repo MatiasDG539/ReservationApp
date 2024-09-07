@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import db from "../../../config/db";
-import { ResultSetHeader } from 'mysql2';
+import { ResultSetHeader } from "mysql2";
 
 export async function PATCH(
   request: Request,
