@@ -1,10 +1,14 @@
+"use client"
+
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import {
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableHeader,
@@ -12,151 +16,130 @@ import {
   TableHead,
   TableBody,
   TableCell,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
 
-export default function Component() {
+interface Applicant {
+  id: number;
+  place: string;
+  dpto: string;
+  ownerName: string;
+  dayTime: string;
+  createdAt: string;
+  reservationDate: string;
+  reservationStatus: string;
+  updatedAt: string;
+}
+
+const ReservationTable: React.FC = () => {
+  const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchApplicants = async () => {
+    try {
+      const response = await axios.get('/api/reservation');
+      setApplicants(response.data);
+      setLoading(false);
+    } catch (err) {
+      setError('Error al cargar los datos');
+      setLoading(false);
+    }
+  };
+
+  const updateReservationStatus = async (id: number, newStatus: string) => {
+    try {
+      await axios.patch(`/api/reservation/${id}`, { reservationStatus: newStatus });
+      // Refrescar los datos después de la actualización
+      fetchApplicants();
+    } catch (err) {
+      setError('Error al actualizar el estado');
+    }
+  };
+
+  useEffect(() => {
+    fetchApplicants();
+  }, []);
+
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
+
+  if (error) {
+    return <div>{error}</div>;
+  }
+
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-full mx-auto p-6 sm:p-8 md:p-10 bg-gray-100 rounded-lg shadow-lg">
       <Card>
         <CardHeader>
-          <CardTitle>Detalles de reservas</CardTitle>
-          <CardDescription>Aquí se muestran todas las reservas realizadas.</CardDescription>
+          <CardTitle className="text-3xl">Detalles de reservas</CardTitle>
+          <CardDescription className="text-base">
+            Aquí se muestran todas las reservas realizadas.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table className="w-full">
             <TableHeader>
               <TableRow>
-                <TableHead>Lugar</TableHead>
-                <TableHead>Lote/Depto</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Horario</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead className="w-[150px]">Estado</TableHead>
+                <TableHead className="text-base">Lugar</TableHead>
+                <TableHead className="text-base">Lote/Depto</TableHead>
+                <TableHead className="text-base">Nombre</TableHead>
+                <TableHead className="text-base">Horario</TableHead>
+                <TableHead className="text-base">Creada</TableHead>
+                <TableHead className="text-base">Fecha a reservar</TableHead>
+                <TableHead className="text-base w-[150px]">Estado</TableHead>
+                <TableHead className="text-base">Actualizada</TableHead>
+                <TableHead className="text-base">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell>Pinar II</TableCell>
-                <TableCell>101</TableCell>
-                <TableCell>Martin Pillitteri</TableCell>
-                <TableCell>Noche</TableCell>
-                <TableCell>25/10/2024</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full">
-                      Esperando pago
-                        <ChevronDownIcon className="w-4 h-4 ml-2" />
+              {applicants.length > 0 ? (
+                applicants.map((applicant) => (
+                  <TableRow key={applicant.id} className="text-base">
+                    <TableCell>{applicant.place}</TableCell>
+                    <TableCell>{applicant.dpto}</TableCell>
+                    <TableCell>{applicant.ownerName}</TableCell>
+                    <TableCell>{applicant.dayTime}</TableCell>
+                    <TableCell>
+                      {format(new Date(applicant.createdAt), 'dd/MM/yyyy HH:mm')}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(applicant.reservationDate), 'dd/MM/yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      <select
+                        value={applicant.reservationStatus}
+                        onChange={(e) => updateReservationStatus(applicant.id, e.target.value)}
+                      >
+                        <option value="Esperando pago">Esperando pago</option>
+                        <option value="Reservado">Reservado</option>
+                        <option value="Realizado">Realizado</option>
+                        <option value="Cancelado">Cancelado</option>
+                      </select>
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(applicant.updatedAt), 'dd/MM/yyyy HH:mm')}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="destructive" size="sm">
+                        Eliminar
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>Esperando pago</DropdownMenuItem>
-                      <DropdownMenuItem>Reservado</DropdownMenuItem>
-                      <DropdownMenuItem>Realizado</DropdownMenuItem>
-                      <DropdownMenuItem>Cancelado</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Salta 565</TableCell>
-                <TableCell>2B</TableCell>
-                <TableCell>Noelia Cisneros</TableCell>
-                <TableCell>Mañana</TableCell>
-                <TableCell>18/09/2024</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full">
-                      Reservado
-                        <ChevronDownIcon className="w-4 h-4 ml-2" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>Esperando pago</DropdownMenuItem>
-                      <DropdownMenuItem>Reservado</DropdownMenuItem>
-                      <DropdownMenuItem>Realizado</DropdownMenuItem>
-                      <DropdownMenuItem>Cancelado</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Laprida 735</TableCell>
-                <TableCell>3A</TableCell>
-                <TableCell>Ruth Vera</TableCell>
-                <TableCell>Noche</TableCell>
-                <TableCell>02/09/2024</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full">
-                      Realizado
-                        <ChevronDownIcon className="w-4 h-4 ml-2" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>Esperando pago</DropdownMenuItem>
-                      <DropdownMenuItem>Reservado</DropdownMenuItem>
-                      <DropdownMenuItem>Realizado</DropdownMenuItem>
-                      <DropdownMenuItem>Cancelado</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Labradores</TableCell>
-                <TableCell>109</TableCell>
-                <TableCell>Solana Ruiz</TableCell>
-                <TableCell>Noche</TableCell>
-                <TableCell>12/09/2024</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full">
-                      Cancelado
-                        <ChevronDownIcon className="w-4 h-4 ml-2" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>Esperando pago</DropdownMenuItem>
-                      <DropdownMenuItem>Reservado</DropdownMenuItem>
-                      <DropdownMenuItem>Realizado</DropdownMenuItem>
-                      <DropdownMenuItem>Cancelado</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8}>No hay reservas disponibles</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
     </div>
   );
-}
+};
 
-function ChevronDownIcon(props) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
+export default ReservationTable;
