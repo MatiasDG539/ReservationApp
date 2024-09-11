@@ -18,12 +18,23 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
-  // Función para marcar fechas en el calendario
-  const tileClassName = ({ date }: { date: Date }) => {
-    const isReserved = reservedDates.some(
-      reservedDate => reservedDate.toDateString() === date.toDateString()
-    );
-    return isReserved ? "bg-red-500 text-white" : '';
+  // Obtener la fecha actual
+  const today = new Date();
+
+  // Configurar la fecha mínima y máxima
+  const minDate = new Date(today);
+  minDate.setDate(today.getDate() + 2); // 2 días desde la fecha actual
+
+  const maxDate = new Date(today);
+  maxDate.setDate(today.getDate() + 60); // 60 días desde la fecha actual
+
+  // Crear modificadores para las fechas reservadas
+  const modifiers = {
+    reserved: reservedDates, // Fechas reservadas
+  };
+
+  const modifiersClassNames = {
+    reserved: "bg-red-500 text-white", // Clase para las fechas reservadas
   };
 
   return (
@@ -68,7 +79,10 @@ function Calendar({
         IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
       }}
-      tileClassName={tileClassName}  // Aplicar clase para las fechas reservadas
+      modifiers={modifiers}
+      modifiersClassNames={modifiersClassNames}
+      fromDate={minDate}
+      toDate={maxDate}
       {...props}
     />
   );
