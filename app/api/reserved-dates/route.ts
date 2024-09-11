@@ -4,7 +4,7 @@ import db from "../../config/db";
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { place } = data; // Obtener el lugar del cuerpo de la solicitud
+    const { place } = data;
 
     if (!place) {
       return NextResponse.json(

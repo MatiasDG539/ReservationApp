@@ -244,16 +244,25 @@ export function ReservationForm() {
                   </PopoverTrigger>
                   <PopoverContent className="p-0 max-w-[276px]">
                     <Calendar
+                      reservedDates={reservedDates}
                       selected={selectedDate}
                       onDayClick={(date) => {
                         setSelectedDate(date);
                         setValue("selectedDate", format(date, "yyyy-MM-dd"));
                       }}
+                      mode="single"
                       modifiers={{
                         reserved: reservedDates,
+                        available: (date) =>
+                          !reservedDates.some(
+                            (reservedDate) =>
+                              reservedDate.toDateString() ===
+                              date.toDateString()
+                          ),
                       }}
                       modifiersClassNames={{
-                        reserved: "bg-red-500 text-white",
+                        reserved: "bg-red-400 text-white",
+                        available: "bg-green-200 text-black",
                       }}
                     />
                   </PopoverContent>
