@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import toast, { Toaster } from "react-hot-toast";
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -35,6 +36,7 @@ export function ReservationForm() {
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm();
   const [showReservation, setShowReservation] = useState(false);
@@ -88,11 +90,18 @@ export function ReservationForm() {
         reservationDate: data.selectedDate,
       });
 
-      console.log(response.data);
+      toast.success("¡Reserva realizada con éxito!");
       setShowReservation(true);
     } catch (error) {
       console.error("Error al enviar la reserva:", error);
+      toast.error("Error al realizar la reserva");
     }
+  };
+
+  const handleClose = () => {
+    reset();
+    setSelectedDate(undefined);
+    setShowReservation(false);
   };
 
   const selectedTime = watch("selectedTime");
@@ -300,56 +309,58 @@ export function ReservationForm() {
                 perderá validez pasadas las 24hs de realizada.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-6">
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-6">
+                <div>
                   <Label htmlFor="place" className="text-xl">
                     Lugar
                   </Label>
-                  <div className="font-medium text-lg">{selectedPlace}</div>
+                  <p className="font-medium text-lg break-words">
+                    {selectedPlace}
+                  </p>
                 </div>
-                <div className="space-y-6">
+                <div>
                   <Label htmlFor="apartment" className="text-xl">
                     Lote/Depto
                   </Label>
-                  <div className="font-medium text-lg">
+                  <p className="font-medium text-lg break-words">
                     {watch("apartment")}
-                  </div>
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-6">
+                <div>
                   <Label htmlFor="name" className="text-xl">
                     Nombre
                   </Label>
-                  <div className="font-medium text-lg">{watch("name")}</div>
+                  <p className="font-medium text-lg break-words">
+                    {watch("name")}
+                  </p>
                 </div>
-                <div className="space-y-6">
+                <div>
                   <Label htmlFor="time" className="text-xl">
                     Hora
                   </Label>
-                  <div className="font-medium text-lg">{selectedTime}</div>
+                  <p className="font-medium text-lg break-words">
+                    {selectedTime}
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-6">
+                <div>
                   <Label htmlFor="date" className="text-xl">
                     Fecha
                   </Label>
-                  <div className="font-medium text-lg">
+                  <p className="font-medium text-lg break-words">
                     {selectedDate
                       ? format(selectedDate, "dd/MM/yyyy")
                       : "No seleccionada"}
-                  </div>
+                  </p>
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <Button
-                className="w-full"
-                type="button"
-                onClick={() => setShowReservation(false)}
-              >
+              <Button className="w-full" type="button" onClick={handleClose}>
                 Cerrar
               </Button>
             </CardFooter>
