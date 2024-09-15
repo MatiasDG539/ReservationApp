@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       `SELECT a.reservationDate
        FROM applicants a
        JOIN places p ON a.place = p.name
-       WHERE p.name = ? AND a.reservationStatus IN ('Pending', 'Reservado', 'Esperando pago')`,
+       WHERE p.name = ? AND a.reservationStatus IN ('Reservado', 'Esperando pago')`,
       [place]
     );
 

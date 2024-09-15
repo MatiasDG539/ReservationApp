@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
     const [result] = await db.query(
       "INSERT INTO applicants (place, dpto, ownerName, dayTime, reservationDate, createdAt, reservationStatus) VALUES (?, ?, ?, ?, ?, NOW(), ?)",
-      [place, dpto, ownerName, dayTime, reservationDate, "Pending"]
+      [place, dpto, ownerName, dayTime, reservationDate, "Esperando pago"]
     );
 
     return NextResponse.json({ message: "Reserva guardada con éxito" });

@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+}
+
 @layer base {
   :root {
     --background: 210 10% 90%;
@@ -34,15 +42,20 @@
     @apply bg-background text-foreground font-body;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading;
   }
 
   .font-body {
-    font-family: 'latin', sans-serif;
+    font-family: "latin", sans-serif;
   }
 
   .font-heading {
-    font-family: 'latin', serif;
+    font-family: "latin", serif;
   }
 }
