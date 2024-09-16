@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Applicant {
   id: number;
@@ -38,6 +56,82 @@ interface Applicant {
   updatedAt: string;
 }
 
+// Componente ReservationStatus con lógica de confirmación para cancelación
+const ReservationStatus: React.FC<{
+  id: number;
+  currentStatus: string;
+  updateReservationStatus: (id: number, status: string) => void;
+}> = ({ id, currentStatus, updateReservationStatus }) => {
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+
+  const handleStatusChange = useCallback(
+    (newStatus: string) => {
+      if (newStatus === "Cancelado") {
+        setIsAlertOpen(true);
+        setPendingStatus(newStatus);
+      } else {
+        updateReservationStatus(id, newStatus);
+      }
+    },
+    [id, updateReservationStatus]
+  );
+
+  const handleConfirmCancel = useCallback(() => {
+    if (pendingStatus) {
+      updateReservationStatus(id, pendingStatus);
+    }
+    setIsAlertOpen(false);
+    setPendingStatus(null);
+  }, [id, pendingStatus, updateReservationStatus]);
+
+  const handleCancelAlert = useCallback(() => {
+    setIsAlertOpen(false);
+    setPendingStatus(null);
+  }, []);
+
+  if (currentStatus === "Cancelado") {
+    return <span className="text-red-600 font-medium p-3">Cancelado</span>;
+  }
+
+  return (
+    <>
+      <Select value={currentStatus} onValueChange={handleStatusChange}>
+        <SelectTrigger className="w-[180px] bg-transparent border-none text-gray-700 focus:outline-none">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Esperando pago">Esperando pago</SelectItem>
+          <SelectItem value="Reservado">Reservado</SelectItem>
+          <SelectItem value="Realizado">Realizado</SelectItem>
+          <SelectItem value="Cancelado">Cancelado</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción cambiará el estado de la reserva a "Cancelado". Esta
+              acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelAlert}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmCancel}>
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
+
+// Componente principal de la tabla de reservas
 const ReservationTable: React.FC = () => {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [filteredApplicants, setFilteredApplicants] = useState<Applicant[]>([]);
@@ -67,12 +161,12 @@ const ReservationTable: React.FC = () => {
 
       const uniquePlaces = [
         ...new Set(data.map((applicant) => applicant.place)),
-      ] as string[];
+      ];
       setPlaces(uniquePlaces);
 
       const uniqueStatus = [
         ...new Set(data.map((applicant) => applicant.reservationStatus)),
-      ] as string[];
+      ];
       setStatus(uniqueStatus);
       setLoading(false);
     } catch (err) {
@@ -86,7 +180,6 @@ const ReservationTable: React.FC = () => {
       await axios.patch(`/api/reservation/${id}`, {
         reservationStatus: newStatus,
       });
-      // Refrescar los datos sin perder los filtros aplicados
       const updatedApplicants = applicants.map((applicant) =>
         applicant.id === id
           ? {
@@ -217,7 +310,7 @@ const ReservationTable: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="relative overflow-x-auto">
-            <div className="max-h-[615px] overflow-y-auto custom-scrollbar">
+            <div className="max-h-[620px] overflow-y-auto custom-scrollbar">
               <Table className="w-full">
                 <TableHeader>
                   <TableRow className="sticky-header">
@@ -282,23 +375,11 @@ const ReservationTable: React.FC = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <select
-                            value={applicant.reservationStatus}
-                            onChange={(e) =>
-                              updateReservationStatus(
-                                applicant.id,
-                                e.target.value
-                              )
-                            }
-                            className="bg-transparent border border-none text-gray-700 focus:outline-none"
-                          >
-                            <option value="Esperando pago">
-                              Esperando pago
-                            </option>
-                            <option value="Reservado">Reservado</option>
-                            <option value="Realizado">Realizado</option>
-                            <option value="Cancelado">Cancelado</option>
-                          </select>
+                          <ReservationStatus
+                            id={applicant.id}
+                            currentStatus={applicant.reservationStatus}
+                            updateReservationStatus={updateReservationStatus}
+                          />
                         </TableCell>
                         <TableCell>
                           {format(
