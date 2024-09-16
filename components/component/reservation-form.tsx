@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -43,6 +43,9 @@ export function ReservationForm() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [places, setPlaces] = useState<string[]>([]);
   const [reservedDates, setReservedDates] = useState<Date[]>([]);
+  const [availabilityStatus, setAvailabilityStatus] = useState<
+    Record<string, boolean>
+  >({});
 
   const selectedPlace = watch("selectedPlace");
 
@@ -71,6 +74,13 @@ export function ReservationForm() {
               new Date(item.reservationDate)
           );
           setReservedDates(dates);
+
+          // Actualizar el estado de disponibilidad
+          const availability: Record<string, boolean> = {};
+          dates.forEach((date) => {
+            availability[format(date, "yyyy-MM-dd")] = true;
+          });
+          setAvailabilityStatus(availability);
         } catch (error) {
           console.error("Error al obtener las fechas reservadas:", error);
         }
@@ -145,7 +155,12 @@ export function ReservationForm() {
                       <DropdownMenuItem
                         key={place}
                         className="text-base"
-                        onSelect={() => setValue("selectedPlace", place)}
+                        onSelect={() => {
+                          setValue("selectedPlace", place);
+                          // Restablecer la fecha seleccionada cuando cambie el lugar
+                          setSelectedDate(undefined);
+                          setValue("selectedDate", "");
+                        }}
                       >
                         {place}
                       </DropdownMenuItem>
@@ -263,11 +278,7 @@ export function ReservationForm() {
                       modifiers={{
                         reserved: reservedDates,
                         available: (date) =>
-                          !reservedDates.some(
-                            (reservedDate) =>
-                              reservedDate.toDateString() ===
-                              date.toDateString()
-                          ),
+                          !availabilityStatus[format(date, "yyyy-MM-dd")],
                       }}
                       modifiersClassNames={{
                         reserved: "bg-red-400 text-white",
@@ -287,6 +298,20 @@ export function ReservationForm() {
               </Button>
             </form>
           </CardContent>
+          <div className="justify-center text-center border-t border-gray-200 pt-4 mt-4">
+            <p className="text-base text-gray-600">
+              © 2024 Reservation App. Todos los derechos reservados Estudio
+              Jurídico Pillitteri & Asoc. - Designed By
+              <a
+                href="https://www.linkedin.com/in/matias-daniel-gutierrez-2a6a171a7/"
+                className="text-blue-500 hover:underline"
+              >
+                {" "}
+                Gutierrez Matias Daniel
+              </a>
+              .
+            </p>
+          </div>
         </Card>
       )}
 

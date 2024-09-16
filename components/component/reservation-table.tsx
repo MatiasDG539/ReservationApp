@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import toast, { Toaster } from "react-hot-toast";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,43 +61,36 @@ interface Applicant {
 const ReservationStatus: React.FC<{
   id: number;
   currentStatus: string;
+  reservationDate: string;
   updateReservationStatus: (id: number, status: string) => void;
-}> = ({ id, currentStatus, updateReservationStatus }) => {
+}> = ({ id, currentStatus, reservationDate, updateReservationStatus }) => {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+
+  // Determina si la fecha ya ha pasado o si el estado actual es "Cancelado"
+  const isDatePassed = new Date(reservationDate) < new Date();
+  const isStatusCanceled = currentStatus === "Cancelado";
 
   const handleStatusChange = useCallback(
     (newStatus: string) => {
       if (newStatus === "Cancelado") {
         setIsAlertOpen(true);
         setPendingStatus(newStatus);
-      } else {
+      } else if (!isDatePassed && !isStatusCanceled) {
         updateReservationStatus(id, newStatus);
+        toast.success("¡Estado actualizado con éxito!");
       }
     },
-    [id, updateReservationStatus]
+    [id, updateReservationStatus, isDatePassed, isStatusCanceled]
   );
-
-  const handleConfirmCancel = useCallback(() => {
-    if (pendingStatus) {
-      updateReservationStatus(id, pendingStatus);
-    }
-    setIsAlertOpen(false);
-    setPendingStatus(null);
-  }, [id, pendingStatus, updateReservationStatus]);
-
-  const handleCancelAlert = useCallback(() => {
-    setIsAlertOpen(false);
-    setPendingStatus(null);
-  }, []);
-
-  if (currentStatus === "Cancelado") {
-    return <span className="text-red-600 font-medium p-3">Cancelado</span>;
-  }
 
   return (
     <>
-      <Select value={currentStatus} onValueChange={handleStatusChange}>
+      <Select
+        value={currentStatus}
+        onValueChange={handleStatusChange}
+        disabled={isDatePassed || isStatusCanceled}
+      >
         <SelectTrigger className="w-[180px] bg-transparent border-none text-gray-700 focus:outline-none">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
@@ -118,10 +112,18 @@ const ReservationStatus: React.FC<{
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelAlert}>
+            <AlertDialogCancel onClick={() => setIsAlertOpen(false)}>
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmCancel}>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingStatus) {
+                  updateReservationStatus(id, pendingStatus);
+                  toast.success("¡Estado actualizado con éxito!");
+                }
+                setIsAlertOpen(false);
+              }}
+            >
               Continuar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -168,6 +170,7 @@ const ReservationTable: React.FC = () => {
         ...new Set(data.map((applicant) => applicant.reservationStatus)),
       ];
       setStatus(uniqueStatus);
+
       setLoading(false);
     } catch (err) {
       setError("Error al cargar los datos");
@@ -190,6 +193,7 @@ const ReservationTable: React.FC = () => {
           : applicant
       );
       setApplicants(updatedApplicants);
+      applyFilters(updatedApplicants);
     } catch (err) {
       setError("Error al actualizar el estado");
     }
@@ -378,13 +382,14 @@ const ReservationTable: React.FC = () => {
                           <ReservationStatus
                             id={applicant.id}
                             currentStatus={applicant.reservationStatus}
+                            reservationDate={applicant.reservationDate}
                             updateReservationStatus={updateReservationStatus}
                           />
                         </TableCell>
                         <TableCell>
                           {format(
                             new Date(applicant.updatedAt),
-                            "dd/MM/yyyy HH:mm"
+                            "dd/MM/yyyy HH:mm:ss"
                           )}
                         </TableCell>
                       </TableRow>
@@ -401,6 +406,20 @@ const ReservationTable: React.FC = () => {
             </div>
           </div>
         </CardContent>
+        <div className="justify-center text-center pt-4 pb-4 mt-4">
+          <p className="text-base text-gray-600">
+            © 2024 Reservation App. Todos los derechos reservados Estudio
+            Jurídico Pillitteri & Asoc. - Designed By
+            <a
+              href="https://www.linkedin.com/in/matias-daniel-gutierrez-2a6a171a7/"
+              className="text-blue-500 hover:underline"
+            >
+              {" "}
+              Gutierrez Matias Daniel
+            </a>
+            .
+          </p>
+        </div>
       </Card>
     </div>
   );

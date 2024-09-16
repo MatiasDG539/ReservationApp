@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import db from "../../../config/db";
-import { ResultSetHeader } from "mysql2";
 
 export async function PATCH(
   request: Request,
@@ -9,23 +8,57 @@ export async function PATCH(
   const { id } = params;
   const { reservationStatus } = await request.json();
 
+  if (!reservationStatus) {
+    return NextResponse.json({ error: "Status is required" }, { status: 400 });
+  }
+
   try {
-    const [results] = await db.query<ResultSetHeader>(
-      "UPDATE applicants SET reservationStatus = ?, updatedAt = NOW() WHERE id = ?",
-      [reservationStatus, id]
+    // Obtener la reserva actual
+    const [rows]: [any[], any] = await db.query(
+      "SELECT place, reservationDate, reservationStatus FROM applicants WHERE id = ?",
+      [id]
     );
 
-    // Verificar si se actualizó alguna fila
-    if (results.affectedRows > 0) {
-      return NextResponse.json({ message: "Estado actualizado" });
-    } else {
+    if (rows.length === 0) {
       return NextResponse.json(
-        { message: "Reserva no encontrada" },
+        { error: "Reservation not found" },
         { status: 404 }
       );
     }
+
+    const {
+      place,
+      reservationDate,
+      reservationStatus: currentStatus,
+    } = rows[0];
+
+    // Verificar si la fecha de la reserva ya pasó
+    if (new Date(reservationDate) < new Date()) {
+      return NextResponse.json(
+        { error: "Cannot modify reservation: the date has passed" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar el estado y disponibilidad
+    if (reservationStatus === "Cancelado") {
+      await db.query(
+        "UPDATE applicants SET reservationStatus = ?, isAvailable = TRUE WHERE id = ?",
+        [reservationStatus, id]
+      );
+    } else {
+      await db.query(
+        "UPDATE applicants SET reservationStatus = ? WHERE id = ?",
+        [reservationStatus, id]
+      );
+    }
+
+    return NextResponse.json({ message: "Status updated successfully" });
   } catch (error) {
-    console.error("Error al actualizar el estado:", error);
-    return NextResponse.error();
+    console.error(error);
+    return NextResponse.json(
+      { error: "Error updating status" },
+      { status: 500 }
+    );
   }
 }
