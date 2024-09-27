@@ -1,4 +1,5 @@
 import { fontFamily } from "tailwindcss/defaultTheme";
+import { PluginAPI } from "tailwindcss/types/config";
 
 /**@type {import('tailwindcss').Config}*/
 export default {
@@ -68,7 +69,7 @@ export default {
   },
   plugins: [
     require("tailwindcss-animate"),
-    function ({ addUtilities }) {
+    function ({ addUtilities }: PluginAPI) {
       addUtilities({
         ".custom-scrollbar::-webkit-scrollbar": {
           width: "2px",

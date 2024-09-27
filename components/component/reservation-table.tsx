@@ -396,7 +396,7 @@ const ReservationTable: React.FC = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={8} className="text-center justify-center text-base pt-10">
                         No hay reservas disponibles.
                       </TableCell>
                     </TableRow>
@@ -406,12 +406,12 @@ const ReservationTable: React.FC = () => {
             </div>
           </div>
         </CardContent>
-        <div className="justify-center text-center pt-4 pb-4 mt-4">
+        <div className="justify-center text-center p-10 mt-4">
           <p className="text-base text-gray-600">
             © 2024 Reservation App. Todos los derechos reservados Estudio
             Jurídico Pillitteri & Asoc. - Designed By
             <a
-              href="https://www.linkedin.com/in/matias-daniel-gutierrez-2a6a171a7/"
+              href="https://www.linkedin.com/in/matias-daniel-gutierrez/"
               className="text-blue-500 hover:underline"
             >
               {" "}
