@@ -30,7 +30,7 @@ import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import axios from "axios";
 
-export function ReservationForm() {
+export function ReservationFormSolar() {
   const {
     register,
     handleSubmit,
@@ -100,14 +100,6 @@ export function ReservationForm() {
         reservationDate: data.selectedDate,
       });
 
-      await axios.post("/api/sendMail", {
-        place: data.selectedPlace,
-        apartment: data.apartment,
-        name: data.name,
-        dayTime: data.selectedTime,
-        reservationDate: data.selectedDate,
-      });
-
       toast.success("¡Reserva realizada con éxito!");
       setShowReservation(true);
     } catch (error) {
@@ -132,54 +124,17 @@ export function ReservationForm() {
       {!showReservation && (
         <Card className="max-w-2xl mx-auto p-6 sm:p-8 md:p-10 bg-white rounded-lg shadow-lg">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold">
+            <CardTitle className="text-3xl font-bold text-center">
               Formulario De Reserva
+              <p>Barrio Solar de Tafi</p>
             </CardTitle>
-            <CardDescription className="text-base">
+            <CardDescription className="text-base text-center">
               Para realizar la reserva del SUM, por favor completa el
               formulario.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="grid gap-6" onSubmit={handleSubmit(onSubmit)}>
-              <div className="grid gap-2">
-                <Label htmlFor="place" className="text-base font-medium">
-                  Selecciona el lugar
-                </Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="bg-white justify-between w-full"
-                    >
-                      <span className="text-base">
-                        {selectedPlace || "Selecciona un lugar"}
-                      </span>
-                      <ChevronDownIcon className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    {places.map((place) => (
-                      <DropdownMenuItem
-                        key={place}
-                        className="text-base"
-                        onSelect={() => {
-                          setValue("selectedPlace", place);
-                          setSelectedDate(undefined);
-                          setValue("selectedDate", "");
-                        }}
-                      >
-                        {place}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {errors.selectedPlace?.message && (
-                  <span className="text-red-500 text-sm">
-                    {String(errors.selectedPlace.message)}
-                  </span>
-                )}
-              </div>
               <div className="grid gap-2">
                 <Label htmlFor="apartment" className="text-base font-medium">
                   Lote/Depto

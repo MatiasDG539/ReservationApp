@@ -17,11 +17,11 @@ export async function GET() {
 
 // Manejar solicitudes POST
 export async function POST(request: Request) {
-  const { place, reservationDate } = await request.json();
+  const { place, dpto, ownerName, dayTime, reservationDate } = await request.json();
 
   if (!place || !reservationDate) {
     return NextResponse.json(
-      { error: "Place and date are required" },
+      { error: "All fields are required" },
       { status: 400 }
     );
   }
@@ -42,8 +42,8 @@ export async function POST(request: Request) {
 
     // Insertar nueva reserva
     await db.query(
-      "INSERT INTO applicants (place, reservationDate, reservationStatus) VALUES (?, ?, ?)",
-      [place, reservationDate, "Esperando pago"]
+      "INSERT INTO applicants (place, dpto, ownerName, dayTime, reservationDate, reservationStatus) VALUES (?, ?, ?, ?, ?, ?)",
+      [place, dpto, ownerName, dayTime, reservationDate, "Esperando pago"]
     );
 
     return NextResponse.json({ message: "Reservation created successfully" });
