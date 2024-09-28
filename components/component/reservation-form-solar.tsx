@@ -41,63 +41,47 @@ export function ReservationFormSolar() {
   } = useForm();
   const [showReservation, setShowReservation] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [places, setPlaces] = useState<string[]>([]);
   const [reservedDates, setReservedDates] = useState<Date[]>([]);
   const [availabilityStatus, setAvailabilityStatus] = useState<
     Record<string, boolean>
   >({});
 
-  const selectedPlace = watch("selectedPlace");
+  const selectedPlace = "Solar de Tafi"; // El lugar está definido directamente aquí.
 
   useEffect(() => {
-    const fetchPlaces = async () => {
+    // Fetch reserved dates based on the fixed selected place
+    const fetchReservedDates = async () => {
       try {
-        const response = await axios.get("/api/places");
-        setPlaces(response.data.map((place: { name: string }) => place.name));
+        const response = await axios.post("/api/reserved-dates", {
+          place: selectedPlace,
+        });
+        const dates = response.data.map(
+          (item: { reservationDate: string }) => new Date(item.reservationDate)
+        );
+        setReservedDates(dates);
+
+        const availability: Record<string, boolean> = {};
+        dates.forEach((date: Date) => {
+          availability[format(date, "yyyy-MM-dd")] = true;
+        });
+        setAvailabilityStatus(availability);
       } catch (error) {
-        console.error("Error al obtener lugares:", error);
+        console.error("Error al obtener las fechas reservadas:", error);
       }
     };
 
-    fetchPlaces();
-  }, []);
-
-  useEffect(() => {
-    if (selectedPlace) {
-      const fetchReservedDates = async () => {
-        try {
-          const response = await axios.post("/api/reserved-dates", {
-            place: selectedPlace,
-          });
-          const dates = response.data.map(
-            (item: { reservationDate: string }) =>
-              new Date(item.reservationDate)
-          );
-          setReservedDates(dates);
-
-          // Actualizar el estado de disponibilidad
-          const availability: Record<string, boolean> = {};
-          dates.forEach((date: Date) => {
-            availability[format(date, "yyyy-MM-dd")] = true;
-          });
-          setAvailabilityStatus(availability);
-        } catch (error) {
-          console.error("Error al obtener las fechas reservadas:", error);
-        }
-      };
-
-      fetchReservedDates();
-    }
+    fetchReservedDates();
   }, [selectedPlace]);
 
   const onSubmit = async (data: any) => {
     try {
-      const response = await axios.post("/api/reservation", {
-        place: data.selectedPlace,
+      const response = await axios.post("/api/reservationSolar", {
+        place: "Solar de Tafi",
         dpto: data.apartment,
         ownerName: data.name,
-        dayTime: data.selectedTime,
+        dayTime: "Todo el dia",
         reservationDate: data.selectedDate,
+        usageType: data.usageType,
       });
 
       toast.success("¡Reserva realizada con éxito!");
@@ -114,6 +98,7 @@ export function ReservationFormSolar() {
     setShowReservation(false);
   };
 
+  const selectedUsageType = watch("selectedUsageType");
   const selectedTime = watch("selectedTime");
   const selectedDateFormatted = selectedDate
     ? format(selectedDate, "dd/MM/yyyy")
@@ -128,13 +113,32 @@ export function ReservationFormSolar() {
               Formulario De Reserva
               <p>Barrio Solar de Tafi</p>
             </CardTitle>
-            <CardDescription className="text-base text-center">
+            <CardDescription className="text-base">
               Para realizar la reserva del SUM, por favor completa el
               formulario.
+              <p>Les recordamos que los precios actuales son:</p>
+              <ul className="text-center font-bold">
+                <li>Propio: $35.000</li>
+                <li>Tercero: $70.000</li>
+              </ul>
+
+              <p>En caso de no corresponder a uso propio, se aplicarán monto de uso de tercero por omisión.</p>
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="grid gap-6" onSubmit={handleSubmit(onSubmit)}>
+              <div className="grid gap-2">
+                <Label htmlFor="place" className="text-base font-medium">
+                  Lugar
+                </Label>
+                <Input
+                  className="bg-white border border-gray-300 rounded-md p-2 text-base"
+                  id="place"
+                  defaultValue="Solar de Tafi"
+                  readOnly
+                  {...register("place")}
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="apartment" className="text-base font-medium">
                   Lote/Depto
@@ -173,7 +177,7 @@ export function ReservationFormSolar() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="time" className="text-base font-medium">
-                  Horario de realización
+                  Tipo de uso
                 </Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -182,7 +186,7 @@ export function ReservationFormSolar() {
                       className="bg-white justify-between w-full"
                     >
                       <span className="text-base">
-                        {selectedTime || "Selecciona el horario"}
+                        {watch("usageType") || "Selecciona un tipo de uso"}
                       </span>
                       <ChevronDownIcon className="w-4 h-4" />
                     </Button>
@@ -190,27 +194,21 @@ export function ReservationFormSolar() {
                   <DropdownMenuContent className="w-full">
                     <DropdownMenuItem
                       className="text-base"
-                      onSelect={() => setValue("selectedTime", "Mañana")}
+                      onSelect={() => setValue("usageType", "Propio")}
                     >
-                      Mañana
+                      Propio
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-base"
-                      onSelect={() => setValue("selectedTime", "Tarde")}
+                      onSelect={() => setValue("usageType", "Tercero")}
                     >
-                      Tarde
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-base"
-                      onSelect={() => setValue("selectedTime", "Noche")}
-                    >
-                      Noche
+                      Tercero
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                {errors.selectedPlace?.message && (
+                {errors.usageType?.message && (
                   <span className="text-red-500 text-sm">
-                    {String(errors.selectedPlace.message)}
+                    {String(errors.usageType.message)}
                   </span>
                 )}
               </div>
@@ -303,7 +301,7 @@ export function ReservationFormSolar() {
                     Lugar
                   </Label>
                   <p className="font-medium text-lg break-words">
-                    {selectedPlace}
+                    Solar de Tafi
                   </p>
                 </div>
                 <div>
@@ -326,10 +324,10 @@ export function ReservationFormSolar() {
                 </div>
                 <div>
                   <Label htmlFor="time" className="text-xl">
-                    Hora
+                    Tipo de uso
                   </Label>
                   <p className="font-medium text-lg break-words">
-                    {selectedTime}
+                    {selectedUsageType}
                   </p>
                 </div>
               </div>
