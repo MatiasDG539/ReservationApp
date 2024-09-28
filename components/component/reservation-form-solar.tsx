@@ -2,7 +2,9 @@
 
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   Card,
   CardHeader,
@@ -40,16 +42,16 @@ export function ReservationFormSolar() {
     formState: { errors },
   } = useForm();
   const [showReservation, setShowReservation] = useState(false);
+  const [pdfLink, setPdfLink] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [reservedDates, setReservedDates] = useState<Date[]>([]);
   const [availabilityStatus, setAvailabilityStatus] = useState<
     Record<string, boolean>
   >({});
 
-  const selectedPlace = "Solar de Tafi"; // El lugar está definido directamente aquí.
+  const selectedPlace = "Solar de Tafi";
 
   useEffect(() => {
-    // Fetch reserved dates based on the fixed selected place
     const fetchReservedDates = async () => {
       try {
         const response = await axios.post("/api/reserved-dates", {
@@ -104,6 +106,66 @@ export function ReservationFormSolar() {
     ? format(selectedDate, "dd/MM/yyyy")
     : "Selecciona la fecha";
 
+  const generatePDF = async () => {
+    const input = document.getElementById("pdf-content");
+    if (!input) return;
+
+    const canvas = await html2canvas(input);
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    // Keep the original dimensions
+    const imgWidth = 120;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    // Calculate positions
+    const positionX = (pageWidth - imgWidth) / 2;
+    const contentYPosition = 20;
+
+    // Set background color
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // Add content
+    pdf.addImage(
+      imgData,
+      "PNG",
+      positionX,
+      contentYPosition,
+      imgWidth,
+      imgHeight
+    );
+
+    // Calculate white space position
+    const whiteSpaceY = contentYPosition + imgHeight;
+
+    // Add white space with the same width as the invoice
+    const whiteSpaceHeight = 100;
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(positionX, whiteSpaceY, imgWidth, whiteSpaceHeight, "F");
+
+    // Calculate logo position
+    const logoWidth = 100;
+    const logoHeight = 100;
+    const logoX = positionX + (imgWidth - logoWidth) / 2;
+    const logoY = whiteSpaceY + 2;
+
+    // Load and add logo
+    const logoUrl = "/client-logo.png";
+    const logoImg = new Image();
+    logoImg.src = logoUrl;
+    await new Promise((resolve) => {
+      logoImg.onload = resolve;
+    });
+
+    pdf.addImage(logoImg, "PNG", logoX, logoY, logoWidth, logoHeight);
+
+    pdf.save("recibo_de_reserva.pdf");
+  };
+
   return (
     <div className="relative">
       {!showReservation && (
@@ -116,29 +178,21 @@ export function ReservationFormSolar() {
             <CardDescription className="text-base">
               Para realizar la reserva del SUM, por favor completa el
               formulario.
-              <p>Les recordamos que los precios actuales son:</p>
-              <ul className="text-center font-bold">
-                <li>Propio: $35.000</li>
-                <li>Tercero: $70.000</li>
-              </ul>
-
-              <p>En caso de no corresponder a uso propio, se aplicarán monto de uso de tercero por omisión.</p>
+            </CardDescription>
+            <CardDescription className="text-base">
+              Les recordamos que los precios actuales son:
+            </CardDescription>
+            <ul className="text-center font-bold">
+              <li>Propio: $35.000</li>
+              <li>Tercero: $70.000</li>
+            </ul>
+            <CardDescription className="text-base">
+              En caso de no corresponder a uso propio, se aplicarán monto de uso
+              de tercero por omisión.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="grid gap-6" onSubmit={handleSubmit(onSubmit)}>
-              <div className="grid gap-2">
-                <Label htmlFor="place" className="text-base font-medium">
-                  Lugar
-                </Label>
-                <Input
-                  className="bg-white border border-gray-300 rounded-md p-2 text-base"
-                  id="place"
-                  defaultValue="Solar de Tafi"
-                  readOnly
-                  {...register("place")}
-                />
-              </div>
               <div className="grid gap-2">
                 <Label htmlFor="apartment" className="text-base font-medium">
                   Lote/Depto
@@ -278,73 +332,85 @@ export function ReservationFormSolar() {
       {showReservation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="max-w-md mx-auto p-6 sm:p-8">
-            <div className="bg-[#00b894] w-full h-20 py-4 px-10 rounded-t-md">
-              <div className="flex items-center justify-evenly">
-                <CircleCheckIcon className="text-white text-2xl" />
-                <p className="text-xl text-white font-bold">
-                  Pre-Reserva Realizada
-                </p>
+            <div id="pdf-content">
+              <div className="bg-[#00b894] w-full h-20 py-4 px-10 rounded-t-md">
+                <div className="flex items-center justify-evenly">
+                  <CircleCheckIcon className="text-white text-2xl" />
+                  <p className="text-xl text-white font-bold">
+                    Reserva Realizada
+                  </p>
+                </div>
               </div>
+              <CardHeader>
+                <CardTitle className="font-bold">Recibo De Reserva</CardTitle>
+                <CardDescription className="text-base font-medium">
+                  Reserva realizada con éxito!
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-10">
+                  <div>
+                    <Label htmlFor="place" className="text-xl">
+                      Lugar
+                    </Label>
+                    <p className="font-medium text-lg break-words">
+                      Solar de Tafi
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="apartment" className="text-xl">
+                      Lote/Depto
+                    </Label>
+                    <p className="font-medium text-lg break-words">
+                      {watch("apartment")}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-10">
+                  <div>
+                    <Label htmlFor="name" className="text-xl">
+                      Nombre
+                    </Label>
+                    <p className="font-medium text-lg break-words">
+                      {watch("name")}
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="time" className="text-xl">
+                      Tipo de uso
+                    </Label>
+                    <p className="font-medium text-lg break-words">
+                      {watch("usageType")}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-10">
+                  <div>
+                    <Label htmlFor="date" className="text-xl">
+                      Fecha
+                    </Label>
+                    <p className="font-medium text-lg break-words">
+                      {selectedDate
+                        ? format(selectedDate, "dd/MM/yyyy")
+                        : "No seleccionada"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
             </div>
-            <CardHeader>
-              <CardTitle className="font-bold">Recibo De Pre-Reserva</CardTitle>
-              <CardDescription className="text-base font-medium">
-                Por favor enviar una captura de esta pantalla al administrador
-                del lugar para confirmar la reserva, caso contrario la misma
-                perderá validez pasadas las 24hs de realizada.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="place" className="text-xl">
-                    Lugar
-                  </Label>
-                  <p className="font-medium text-lg break-words">
-                    Solar de Tafi
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="apartment" className="text-xl">
-                    Lote/Depto
-                  </Label>
-                  <p className="font-medium text-lg break-words">
-                    {watch("apartment")}
-                  </p>
-                </div>
+            <CardFooter className="flex flex-col items-center">
+              <div className="mb-2 text-center">
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    generatePDF();
+                  }}
+                  className="text-blue-500 underline mb-2 hover:text-blue-700"
+                >
+                  Descargar recibo
+                </a>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name" className="text-xl">
-                    Nombre
-                  </Label>
-                  <p className="font-medium text-lg break-words">
-                    {watch("name")}
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="time" className="text-xl">
-                    Tipo de uso
-                  </Label>
-                  <p className="font-medium text-lg break-words">
-                    {selectedUsageType}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date" className="text-xl">
-                    Fecha
-                  </Label>
-                  <p className="font-medium text-lg break-words">
-                    {selectedDate
-                      ? format(selectedDate, "dd/MM/yyyy")
-                      : "No seleccionada"}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
               <Button className="w-full" type="button" onClick={handleClose}>
                 Cerrar
               </Button>
@@ -359,7 +425,7 @@ export function ReservationFormSolar() {
 function CircleCheckIcon(props: any) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 20 20"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       {...props}

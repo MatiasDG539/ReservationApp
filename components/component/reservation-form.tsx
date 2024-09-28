@@ -53,7 +53,11 @@ export function ReservationForm() {
     const fetchPlaces = async () => {
       try {
         const response = await axios.get("/api/places");
-        setPlaces(response.data.map((place: { name: string }) => place.name));
+        const filteredPlaces = response.data
+          .map((place: { name: string }) => place.name)
+          .filter((placeName: string) => placeName !== "Solar de Tafi");
+
+        setPlaces(filteredPlaces);
       } catch (error) {
         console.error("Error al obtener lugares:", error);
       }
