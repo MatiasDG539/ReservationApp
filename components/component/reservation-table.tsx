@@ -53,6 +53,7 @@ interface Applicant {
   dayTime: string;
   createdAt: string;
   reservationDate: string;
+  usageType: string;
   reservationStatus: string;
   updatedAt: string;
 }
@@ -339,6 +340,9 @@ const ReservationTable: React.FC = () => {
                     >
                       Fecha a reservar {getSortIndicator("reservationDate")}
                     </TableHead>
+                    <TableHead className="text-base bg-gray-100">
+                      Tipo de uso
+                    </TableHead>
                     <TableHead className="text-base w-[150px] bg-gray-100">
                       Estado
                     </TableHead>
@@ -378,6 +382,7 @@ const ReservationTable: React.FC = () => {
                             "dd/MM/yyyy"
                           )}
                         </TableCell>
+                        <TableCell>{applicant.usageType}</TableCell>
                         <TableCell>
                           <ReservationStatus
                             id={applicant.id}
@@ -396,7 +401,10 @@ const ReservationTable: React.FC = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center justify-center text-base pt-10">
+                      <TableCell
+                        colSpan={8}
+                        className="text-center justify-center text-base pt-10"
+                      >
                         No hay reservas disponibles.
                       </TableCell>
                     </TableRow>

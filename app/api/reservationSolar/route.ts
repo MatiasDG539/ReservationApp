@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
     // Insertar nueva reserva
     await db.query(
-      "INSERT INTO applicants (place, dpto, ownerName, dayTime, reservationDate, usageType, reservationStatus) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO applicants (place, dpto, ownerName, daytime, reservationDate, usageType, reservationStatus) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
         place,
         dpto,

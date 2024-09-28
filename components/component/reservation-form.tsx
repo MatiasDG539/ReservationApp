@@ -98,6 +98,7 @@ export function ReservationForm() {
         ownerName: data.name,
         dayTime: data.selectedTime,
         reservationDate: data.selectedDate,
+        usageType: "-",
       });
 
       await axios.post("/api/sendMail", {
