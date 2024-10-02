@@ -32,6 +32,11 @@ import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import axios from "axios";
 
+interface Lote {
+  id: number;
+  personName: string;
+}
+
 export function ReservationFormSolar() {
   const {
     register,
@@ -41,6 +46,10 @@ export function ReservationFormSolar() {
     reset,
     formState: { errors },
   } = useForm();
+  const [search, setSearch] = useState("");
+  const [lotes, setLotes] = useState<Lote[]>([]);
+  const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
+  const [showResults, setShowResults] = useState(false);
   const [showReservation, setShowReservation] = useState(false);
   const [pdfLink, setPdfLink] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -72,8 +81,23 @@ export function ReservationFormSolar() {
       }
     };
 
+    const fetchLotes = async () => {
+      if (search.length > 0) {
+        try {
+          const { data } = await axios.get(`/api/searchLote?search=${search}`);
+          setLotes(data); // Asignar el resultado de la búsqueda al estado tipado
+          setShowResults(data.length > 0); // Mostrar resultados solo si hay lotes encontrados
+        } catch (error) {
+          console.error("Error fetching lotes:", error);
+        }
+      } else {
+        setLotes([]);
+        setShowResults(false); // Ocultar resultados si no hay búsqueda
+      }
+    };
+    fetchLotes();
     fetchReservedDates();
-  }, [selectedPlace]);
+  }, [selectedPlace, search]);
 
   const onSubmit = async (data: any) => {
     try {
@@ -117,19 +141,15 @@ export function ReservationFormSolar() {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    // Keep the original dimensions
     const imgWidth = 120;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // Calculate positions
     const positionX = (pageWidth - imgWidth) / 2;
     const contentYPosition = 20;
 
-    // Set background color
     pdf.setFillColor(240, 240, 240);
     pdf.rect(0, 0, pageWidth, pageHeight, "F");
 
-    // Add content
     pdf.addImage(
       imgData,
       "PNG",
@@ -139,21 +159,17 @@ export function ReservationFormSolar() {
       imgHeight
     );
 
-    // Calculate white space position
     const whiteSpaceY = contentYPosition + imgHeight;
 
-    // Add white space with the same width as the invoice
     const whiteSpaceHeight = 100;
     pdf.setFillColor(255, 255, 255);
     pdf.rect(positionX, whiteSpaceY, imgWidth, whiteSpaceHeight, "F");
 
-    // Calculate logo position
     const logoWidth = 100;
     const logoHeight = 100;
     const logoX = positionX + (imgWidth - logoWidth) / 2;
     const logoY = whiteSpaceY + 2;
 
-    // Load and add logo
     const logoUrl = "/client-logo.png";
     const logoImg = new Image();
     logoImg.src = logoUrl;
@@ -164,6 +180,14 @@ export function ReservationFormSolar() {
     pdf.addImage(logoImg, "PNG", logoX, logoY, logoWidth, logoHeight);
 
     pdf.save("recibo_de_reserva.pdf");
+  };
+
+  const handleLoteSelection = (lote: Lote) => {
+    setSelectedLote(lote); // Asignar el lote seleccionado
+    setSearch(lote.id.toString()); // Establecer el campo de búsqueda con el id del lote seleccionado
+    setValue("apartment", lote.id.toString()); // Actualizar el valor del campo 'apartment'
+    setValue("name", lote.personName); // Actualizar el valor del campo 'name'
+    setShowResults(false); // Ocultar resultados de búsqueda
   };
 
   return (
@@ -195,7 +219,7 @@ export function ReservationFormSolar() {
             <form className="grid gap-6" onSubmit={handleSubmit(onSubmit)}>
               <div className="grid gap-2">
                 <Label htmlFor="apartment" className="text-base font-medium">
-                  Lote/Depto
+                  Lote
                 </Label>
                 <Input
                   className="bg-white border border-gray-300 rounded-md p-2 text-base"
@@ -204,30 +228,35 @@ export function ReservationFormSolar() {
                   {...register("apartment", {
                     required: "Este campo es obligatorio",
                   })}
+                  onChange={(e) => setSearch(e.target.value)} // Actualiza el valor de búsqueda
+                  value={search} // Mantener el valor del input sincronizado
                 />
-                {errors.selectedPlace?.message && (
-                  <span className="text-red-500 text-sm">
-                    {String(errors.selectedPlace.message)}
-                  </span>
+                {showResults && lotes.length > 0 && (
+                  <ul className="mt-2 border border-gray-300 rounded-md">
+                    {lotes.map((lote) => (
+                      <li
+                        key={lote.id}
+                        className="text-gray-700 cursor-pointer hover:bg-gray-200 p-2 rounded-md"
+                        onClick={() => handleLoteSelection(lote)} // Al seleccionar un lote
+                      >
+                        {lote.id} - {lote.personName}
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="name" className="text-base font-medium">
                   Nombre del solicitante
                 </Label>
                 <Input
-                  className="bg-white border border-gray-300 rounded-md p-2 text-base"
+                  className="bg-gray-100 border border-gray-300 rounded-md p-2 text-base"
                   id="name"
-                  placeholder="Ingrese su nombre"
-                  {...register("name", {
-                    required: "Este campo es obligatorio",
-                  })}
+                  value={selectedLote ? selectedLote.personName : ""}
+                  readOnly
+                  {...register("name")}
                 />
-                {errors.selectedPlace?.message && (
-                  <span className="text-red-500 text-sm">
-                    {String(errors.selectedPlace.message)}
-                  </span>
-                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="time" className="text-base font-medium">
