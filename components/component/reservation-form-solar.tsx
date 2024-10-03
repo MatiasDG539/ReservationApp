@@ -85,14 +85,14 @@ export function ReservationFormSolar() {
       if (search.length > 0) {
         try {
           const { data } = await axios.get(`/api/searchLote?search=${search}`);
-          setLotes(data); // Asignar el resultado de la búsqueda al estado tipado
-          setShowResults(data.length > 0); // Mostrar resultados solo si hay lotes encontrados
+          setLotes(data);
+          setShowResults(data.length > 0);
         } catch (error) {
-          console.error("Error fetching lotes:", error);
+          console.error("Error al encontrar lotes:", error);
         }
       } else {
         setLotes([]);
-        setShowResults(false); // Ocultar resultados si no hay búsqueda
+        setShowResults(false);
       }
     };
     fetchLotes();
@@ -100,21 +100,38 @@ export function ReservationFormSolar() {
   }, [selectedPlace, search]);
 
   const onSubmit = async (data: any) => {
-    try {
-      const response = await axios.post("/api/reservationSolar", {
-        place: "Solar de Tafi",
-        dpto: data.apartment,
-        ownerName: data.name,
-        dayTime: "Todo el dia",
-        reservationDate: data.selectedDate,
-        usageType: data.usageType,
-      });
+    const reservationPromise = toast.promise(
+      (async () => {
+        await axios.post("/api/reservationSolar", {
+          place: "Solar de Tafi",
+          dpto: data.apartment,
+          ownerName: data.name,
+          dayTime: "Todo el dia",
+          reservationDate: data.selectedDate,
+          usageType: data.usageType,
+        });
 
-      toast.success("¡Reserva realizada con éxito!");
+        await axios.post("/api/sendEmailSolar", {
+          place: "Solar de Tafi",
+          apartment: data.apartment,
+          name: data.name,
+          dayTime: "Todo el dia",
+          reservationDate: data.selectedDate,
+          usageType: data.usageType,
+        });
+      })(),
+      {
+        loading: "Realizando la reserva...",
+        success: "¡Reserva realizada con éxito!",
+        error: "Error al realizar la reserva",
+      }
+    );
+
+    try {
+      await reservationPromise;
       setShowReservation(true);
     } catch (error) {
       console.error("Error al enviar la reserva:", error);
-      toast.error("Error al realizar la reserva");
     }
   };
 
@@ -183,11 +200,11 @@ export function ReservationFormSolar() {
   };
 
   const handleLoteSelection = (lote: Lote) => {
-    setSelectedLote(lote); // Asignar el lote seleccionado
-    setSearch(lote.id.toString()); // Establecer el campo de búsqueda con el id del lote seleccionado
-    setValue("apartment", lote.id.toString()); // Actualizar el valor del campo 'apartment'
-    setValue("name", lote.personName); // Actualizar el valor del campo 'name'
-    setShowResults(false); // Ocultar resultados de búsqueda
+    setSelectedLote(lote);
+    setSearch(lote.id.toString());
+    setValue("apartment", lote.id.toString());
+    setValue("name", lote.personName);
+    setShowResults(false);
   };
 
   return (
@@ -224,7 +241,7 @@ export function ReservationFormSolar() {
                 <Input
                   className="bg-white border border-gray-300 rounded-md p-2 text-base"
                   id="apartment"
-                  placeholder="Ingrese lote o depto"
+                  placeholder="Ingrese el lote"
                   {...register("apartment", {
                     required: "Este campo es obligatorio",
                   })}
@@ -237,7 +254,7 @@ export function ReservationFormSolar() {
                       <li
                         key={lote.id}
                         className="text-gray-700 cursor-pointer hover:bg-gray-200 p-2 rounded-md"
-                        onClick={() => handleLoteSelection(lote)} // Al seleccionar un lote
+                        onClick={() => handleLoteSelection(lote)}
                       >
                         {lote.id} - {lote.personName}
                       </li>

@@ -3,6 +3,8 @@
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   Card,
   CardHeader,
@@ -46,6 +48,7 @@ export function ReservationForm() {
   const [availabilityStatus, setAvailabilityStatus] = useState<
     Record<string, boolean>
   >({});
+  const [pdfLink, setPdfLink] = useState("");
 
   const selectedPlace = watch("selectedPlace");
 
@@ -95,29 +98,37 @@ export function ReservationForm() {
   }, [selectedPlace]);
 
   const onSubmit = async (data: any) => {
+    const reservationPromise = toast.promise(
+      (async () => {
+        await axios.post("/api/reservation", {
+          place: data.selectedPlace,
+          dpto: data.apartment,
+          ownerName: data.name,
+          dayTime: data.selectedTime,
+          reservationDate: data.selectedDate,
+          usageType: "-",
+        });
+
+        await axios.post("/api/sendMail", {
+          place: data.selectedPlace,
+          apartment: data.apartment,
+          name: data.name,
+          dayTime: data.selectedTime,
+          reservationDate: data.selectedDate,
+        });
+      })(),
+      {
+        loading: "Realizando la reserva...",
+        success: "¡Reserva realizada con éxito!",
+        error: "Error al realizar la reserva",
+      }
+    );
+
     try {
-      const response = await axios.post("/api/reservation", {
-        place: data.selectedPlace,
-        dpto: data.apartment,
-        ownerName: data.name,
-        dayTime: data.selectedTime,
-        reservationDate: data.selectedDate,
-        usageType: "-",
-      });
-
-      await axios.post("/api/sendMail", {
-        place: data.selectedPlace,
-        apartment: data.apartment,
-        name: data.name,
-        dayTime: data.selectedTime,
-        reservationDate: data.selectedDate,
-      });
-
-      toast.success("¡Reserva realizada con éxito!");
+      await reservationPromise;
       setShowReservation(true);
     } catch (error) {
       console.error("Error al enviar la reserva:", error);
-      toast.error("Error al realizar la reserva");
     }
   };
 
@@ -131,6 +142,58 @@ export function ReservationForm() {
   const selectedDateFormatted = selectedDate
     ? format(selectedDate, "dd/MM/yyyy")
     : "Selecciona la fecha";
+
+  const generatePDF = async () => {
+    const input = document.getElementById("pdf-content");
+    if (!input) return;
+
+    const canvas = await html2canvas(input);
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    const imgWidth = 120;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    const positionX = (pageWidth - imgWidth) / 2;
+    const contentYPosition = 20;
+
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+    pdf.addImage(
+      imgData,
+      "PNG",
+      positionX,
+      contentYPosition,
+      imgWidth,
+      imgHeight
+    );
+
+    const whiteSpaceY = contentYPosition + imgHeight;
+
+    const whiteSpaceHeight = 100;
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(positionX, whiteSpaceY, imgWidth, whiteSpaceHeight, "F");
+
+    const logoWidth = 100;
+    const logoHeight = 100;
+    const logoX = positionX + (imgWidth - logoWidth) / 2;
+    const logoY = whiteSpaceY + 2;
+
+    const logoUrl = "/client-logo.png";
+    const logoImg = new Image();
+    logoImg.src = logoUrl;
+    await new Promise((resolve) => {
+      logoImg.onload = resolve;
+    });
+
+    pdf.addImage(logoImg, "PNG", logoX, logoY, logoWidth, logoHeight);
+
+    pdf.save("recibo_de_reserva.pdf");
+  };
 
   return (
     <div className="relative">
@@ -330,73 +393,89 @@ export function ReservationForm() {
       {showReservation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="max-w-md mx-auto p-6 sm:p-8">
-            <div className="bg-[#00b894] w-full h-20 py-4 px-10 rounded-t-md">
-              <div className="flex items-center justify-evenly">
-                <CircleCheckIcon className="text-white text-2xl" />
-                <p className="text-xl text-white font-bold">
-                  Pre-Reserva Realizada
-                </p>
+            <div id="pdf-content">
+              <div className="bg-[#00b894] w-full h-20 py-4 px-10 rounded-t-md">
+                <div className="flex items-center justify-evenly">
+                  <CircleCheckIcon className="text-white text-2xl" />
+                  <p className="text-xl text-white font-bold">
+                    Pre-Reserva Realizada
+                  </p>
+                </div>
               </div>
+              <CardHeader>
+                <CardTitle className="font-bold">
+                  Recibo De Pre-Reserva
+                </CardTitle>
+                <CardDescription className="text-base font-medium">
+                  Por favor enviar una captura de esta pantalla al administrador
+                  del lugar para confirmar la reserva, caso contrario la misma
+                  perderá validez pasadas las 24hs de realizada.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="place" className="text-xl">
+                      Lugar
+                    </Label>
+                    <p className="font-medium text-lg break-words">
+                      {selectedPlace}
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="apartment" className="text-xl">
+                      Lote/Depto
+                    </Label>
+                    <p className="font-medium text-lg break-words">
+                      {watch("apartment")}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name" className="text-xl">
+                      Nombre
+                    </Label>
+                    <p className="font-medium text-lg break-words">
+                      {watch("name")}
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="time" className="text-xl">
+                      Hora
+                    </Label>
+                    <p className="font-medium text-lg break-words">
+                      {selectedTime}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="date" className="text-xl">
+                      Fecha
+                    </Label>
+                    <p className="font-medium text-lg break-words">
+                      {selectedDate
+                        ? format(selectedDate, "dd/MM/yyyy")
+                        : "No seleccionada"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
             </div>
-            <CardHeader>
-              <CardTitle className="font-bold">Recibo De Pre-Reserva</CardTitle>
-              <CardDescription className="text-base font-medium">
-                Por favor enviar una captura de esta pantalla al administrador
-                del lugar para confirmar la reserva, caso contrario la misma
-                perderá validez pasadas las 24hs de realizada.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="place" className="text-xl">
-                    Lugar
-                  </Label>
-                  <p className="font-medium text-lg break-words">
-                    {selectedPlace}
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="apartment" className="text-xl">
-                    Lote/Depto
-                  </Label>
-                  <p className="font-medium text-lg break-words">
-                    {watch("apartment")}
-                  </p>
-                </div>
+            <CardFooter className="flex flex-col items-center">
+              <div className="mb-2 text-center">
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    generatePDF();
+                  }}
+                  className="text-blue-500 underline mb-2 hover:text-blue-700"
+                >
+                  Descargar recibo
+                </a>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name" className="text-xl">
-                    Nombre
-                  </Label>
-                  <p className="font-medium text-lg break-words">
-                    {watch("name")}
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="time" className="text-xl">
-                    Hora
-                  </Label>
-                  <p className="font-medium text-lg break-words">
-                    {selectedTime}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date" className="text-xl">
-                    Fecha
-                  </Label>
-                  <p className="font-medium text-lg break-words">
-                    {selectedDate
-                      ? format(selectedDate, "dd/MM/yyyy")
-                      : "No seleccionada"}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
               <Button className="w-full" type="button" onClick={handleClose}>
                 Cerrar
               </Button>
@@ -411,7 +490,7 @@ export function ReservationForm() {
 function CircleCheckIcon(props: any) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 20 20"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       {...props}
