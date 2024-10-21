@@ -173,7 +173,6 @@ export function ReservationForm() {
     );
 
     const whiteSpaceY = contentYPosition + imgHeight;
-
     const whiteSpaceHeight = 100;
     pdf.setFillColor(255, 255, 255);
     pdf.rect(positionX, whiteSpaceY, imgWidth, whiteSpaceHeight, "F");
@@ -184,8 +183,10 @@ export function ReservationForm() {
     const logoY = whiteSpaceY + 2;
 
     const logoUrl = "/client-logo.png";
-    const logoImg = new Image();
+    const logoImg = new Image() as HTMLImageElement; // Explicit type cast
     logoImg.src = logoUrl;
+
+    // Ensure the image is loaded before adding it to the PDF
     await new Promise((resolve) => {
       logoImg.onload = resolve;
     });
